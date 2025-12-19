@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:oneoffwords/game_elements/puzzle.dart';
 import 'package:oneoffwords/ui/shake_widget.dart';
@@ -6,35 +5,32 @@ import 'package:oneoffwords/ui/shake_widget.dart';
 import 'glow_widget.dart';
 
 class TileRow extends StatelessWidget {
-  List<String> userPath = [];
+  List<String> userPath;
   int? selectedTileIndex;
   int? hintTileIndex;
   int? shakeTileIndex;
   String? errorMessage;
-  Puzzle? puzzle;
-  void Function()? onTap;
-  int Function(String, String)? distanceToTarget;
-  Color Function(int, String)? distanceColor;
+  Puzzle puzzle;
+  void Function(int) onTap;
+  int Function(String) distanceToTarget;
+  Color Function(int) distanceColor;
 
   TileRow({
     super.key,
-    required userPath,
-    required selectedTileIndex,
-    required hintTileIndex,
-    required shakeTileIndex,
+    required this.userPath,
+    required this.selectedTileIndex,
+    required this.hintTileIndex,
+    required this.shakeTileIndex,
     required errorMessage,
-    required puzzle,
-    required onTap,
-    required distanceToTarget,
-    required distanceColor,
+    required this.puzzle,
+    required this.onTap,
+    required this.distanceToTarget,
+    required this.distanceColor,
   });
   @override
   build(BuildContext context) {
-    if (userPath.isEmpty) {
-      print("GOT HERE");
-      return const SizedBox.shrink();
-    }
     final word = userPath.last;
+    print("WORD is $word");
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -48,7 +44,9 @@ class TileRow extends StatelessWidget {
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: GestureDetector(
-                onTap: onTap,
+                onTap: () {
+                  onTap(i);
+                },
                 child: SizedBox(
                   width: 64,
                   height: 108,
@@ -117,13 +115,12 @@ class TileRow extends StatelessWidget {
 
         // ─── DISTANCE INDICATOR ────────────────────
         Text(
-          'Distance: ${distanceToTarget!(word, puzzle!.targetWord)}',
+          'Distance: ${distanceToTarget(word)}',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: distanceColor!(
-              distanceToTarget!(word, puzzle!.targetWord),
-              puzzle!.targetWord,
+            color: distanceColor(
+              distanceToTarget(word),
             ),
           ),
         ),

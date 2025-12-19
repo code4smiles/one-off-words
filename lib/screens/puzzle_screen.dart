@@ -1,11 +1,12 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:flutter/services.dart';
+import 'package:oneoffwords/game_elements/puzzle.dart';
 
 import '../constants.dart';
-import '../game_elements/puzzle.dart';
-import '../ui/tile_row.dart';
 import '../ui/letter_picker.dart';
+import '../ui/tile_row.dart';
 
 class PuzzleScreen extends StatefulWidget {
   const PuzzleScreen({super.key});
@@ -14,51 +15,122 @@ class PuzzleScreen extends StatefulWidget {
   State<PuzzleScreen> createState() => _PuzzleScreenState();
 }
 
-class _PuzzleScreenState extends State<PuzzleScreen>
-    with SingleTickerProviderStateMixin {
+class _PuzzleScreenState extends State<PuzzleScreen> {
   late Future<Puzzle> _puzzleFuture;
   final List<String> _userPath = [];
-
+  String? _puzzleTargetWord;
   int? _selectedTileIndex;
   int? _shakeTileIndex;
-  int? _hintTileIndex;
   String? _errorMessage;
-
-  late AnimationController _winController;
+  int? _hintTileIndex;
 
   @override
   void initState() {
     super.initState();
     _puzzleFuture = _loadPuzzle();
-
-    _winController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
+    _puzzleFuture.then((p) {
+      _puzzleTargetWord = p.targetWord;
+    });
   }
 
   Future<Puzzle> _loadPuzzle() async {
-    final jsonStr = await rootBundle.loadString('assets/puzzles_4_easy.json');
-    final list = jsonDecode(jsonStr) as List<dynamic>;
-    final puzzle = Puzzle.fromJson(list.first);
+    final puzzlesJson =
+        await rootBundle.loadString('assets/puzzles_4_easy.json');
+    final puzzlesList = jsonDecode(puzzlesJson) as List<dynamic>;
+    final puzzleJson = puzzlesList[0]; // pick first for demo
+    final puzzle = Puzzle.fromJson(puzzleJson);
     _userPath.add(puzzle.startWord);
     return puzzle;
   }
 
-  void _changeLetter(Puzzle puzzle, int index, String letter) {
+  bool isOneLetterDifferent(String a, String b) {
+    if (a.length != b.length) return false;
+    int diff = 0;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) diff++;
+      if (diff > 1) return false;
+    }
+    return diff == 1;
+  }
+
+  void _onWin() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text("You got it! 🎉"),
+        content: Text("Solved in ${_userPath.length - 1} moves."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  int? _findHintTile(Puzzle puzzle) {
+    final word = _userPath.last;
+    final chars = word.split('');
+    final currentDist = puzzle.distanceMap[word]!;
+
+    for (int i = 0; i < chars.length; i++) {
+      final original = chars[i];
+
+      for (int c = 0; c < 26; c++) {
+        final letter = String.fromCharCode(97 + c);
+        if (letter == original) continue;
+
+        chars[i] = letter;
+        final candidate = chars.join();
+
+        if (puzzle.distanceMap.containsKey(candidate) &&
+            puzzle.distanceMap[candidate]! < currentDist &&
+            !_userPath.contains(candidate)) {
+          chars[i] = original;
+          return i;
+        }
+      }
+
+      chars[i] = original;
+    }
+
+    return null;
+  }
+
+  void _showHint(Puzzle puzzle) {
+    final index = _findHintTile(puzzle);
+    if (index == null) return;
+
+    setState(() {
+      _hintTileIndex = index;
+    });
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _hintTileIndex = null;
+        });
+      }
+    });
+  }
+
+  void _changeLetter(Puzzle puzzle, int index, String newLetter) {
     final prev = _userPath.last;
     final chars = prev.split('');
 
-    if (chars[index] == letter) return;
+    if (chars[index] == newLetter) return;
 
-    chars[index] = letter;
+    chars[index] = newLetter;
     final guess = chars.join();
 
+    // Invalid dictionary word
     if (!puzzle.distanceMap.containsKey(guess)) {
       setState(() {
         _shakeTileIndex = index;
-        _errorMessage = 'Not a valid word';
+        _errorMessage = "Not a valid word";
       });
+
       Future.delayed(const Duration(milliseconds: 600), () {
         if (mounted) {
           setState(() {
@@ -75,41 +147,13 @@ class _PuzzleScreenState extends State<PuzzleScreen>
     setState(() {
       _userPath.add(guess);
       _selectedTileIndex = null;
+      _shakeTileIndex = null;
+      _errorMessage = null;
     });
 
     if (guess == puzzle.targetWord) {
-      _winController.forward(from: 0);
       _onWin();
     }
-  }
-
-  void _onWin() {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('You got it! 🎉'),
-        content: Text('Solved in ${_userPath.length - 1} moves.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          )
-        ],
-      ),
-    );
-  }
-
-  int _computeEditDistance(String a, String b) {
-    int d = 0;
-    for (int i = 0; i < a.length; i++) {
-      if (a[i] != b[i]) d++;
-    }
-    return d;
-  }
-
-  Color _distanceColor(int distance, String target) {
-    final t = distance / target.length;
-    return Color.lerp(Colors.green, Colors.red, t)!;
   }
 
   Heat _computeHeat(Puzzle puzzle, String prev, String curr) {
@@ -128,42 +172,33 @@ class _PuzzleScreenState extends State<PuzzleScreen>
     }
   }
 
-  int? _findHintTile(Puzzle puzzle) {
-    final word = _userPath.last;
-    final chars = word.split('');
-    final currentDist = puzzle.distanceMap[word]!;
-
-    for (int i = 0; i < chars.length; i++) {
-      final original = chars[i];
-      for (int c = 0; c < 26; c++) {
-        final letter = String.fromCharCode(97 + c);
-        if (letter == original) continue;
-
-        chars[i] = letter;
-        final candidate = chars.join();
-
-        if (puzzle.distanceMap.containsKey(candidate) &&
-            puzzle.distanceMap[candidate]! < currentDist &&
-            !_userPath.contains(candidate)) {
-          chars[i] = original;
-          return i;
-        }
-      }
-      chars[i] = original;
-    }
-    return null;
+  Color _distanceColor(int distance) {
+    if (_puzzleTargetWord == null) return Colors.grey;
+    final maxDistance = _puzzleTargetWord!.length;
+    final normalized = distance / maxDistance; // 0 = correct, 1 = farthest
+    return Color.lerp(Colors.green, Colors.red, normalized)!;
   }
 
-  void _showHint(Puzzle puzzle) {
-    final index = _findHintTile(puzzle);
-    if (index == null) return;
+  int _computeEditDistance(String word1, String word2) {
+    assert(word1.length == word2.length,
+        'Hamming distance requires equal-length words');
 
-    setState(() => _hintTileIndex = index);
+    int distance = 0;
+    for (int i = 0; i < word1.length; i++) {
+      if (word1[i] != word2[i]) distance++;
+    }
+    return distance;
+  }
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _hintTileIndex = null);
-      }
+  int _distanceToTarget(String word) {
+    if (_puzzleFuture == null) return 0; // safety
+    final target = _puzzleTargetWord; // store target once Future resolves
+    return _computeEditDistance(word, target!);
+  }
+
+  void _setTileIndex(int index) {
+    setState(() {
+      _selectedTileIndex = index;
     });
   }
 
@@ -179,86 +214,91 @@ class _PuzzleScreenState extends State<PuzzleScreen>
         }
 
         final puzzle = snapshot.data!;
+        final tiles = <Widget>[];
+
+        // Build history ladder
+        for (int i = 0; i < _userPath.length; i++) {
+          final word = _userPath[i];
+          Heat heat = Heat.same;
+
+          if (i > 0) {
+            final prev = _userPath[i - 1];
+            heat = _computeHeat(puzzle, prev, word);
+          }
+
+          tiles.add(
+            Container(
+              padding: const EdgeInsets.all(14),
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: heatToColor(heat).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.black12),
+              ),
+              child: Center(
+                child: Text(
+                  word.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
 
         return Scaffold(
           appBar: AppBar(title: const Text(appName)),
-          body: Column(
-            children: [
-              // Editable word row and letter picker
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Current editable word
+                SizedBox(
+                  height: 150,
+                  child: TileRow(
+                      userPath: _userPath,
+                      selectedTileIndex: _selectedTileIndex,
+                      hintTileIndex: _hintTileIndex,
+                      shakeTileIndex: _shakeTileIndex,
+                      errorMessage: _errorMessage,
+                      puzzle: puzzle,
+                      onTap: _setTileIndex,
+                      distanceToTarget: _distanceToTarget,
+                      distanceColor: _distanceColor),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Letter picker (only visible when tile selected)
+                LetterPicker(
+                  puzzle: puzzle,
+                  selectedTileIndex: _selectedTileIndex,
+                  changeLetter: _changeLetter,
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    if (_userPath.isNotEmpty)
-                      TileRow(
-                        puzzle: puzzle,
-                        userPath: _userPath,
-                        selectedTileIndex: _selectedTileIndex,
-                        shakeTileIndex: _shakeTileIndex,
-                        hintTileIndex: _hintTileIndex,
-                        errorMessage: _errorMessage,
-                        onTap: (i) {
-                          setState(() {
-                            _selectedTileIndex = i;
-                          });
-                        },
-                        distanceToTarget: (w, t) => _computeEditDistance(w, t),
-                        distanceColor: _distanceColor,
-                      ),
-                    const SizedBox(height: 12),
-                    if (_selectedTileIndex != null)
-                      LetterPicker(
-                        selectedTileIndex: _selectedTileIndex,
-                        puzzle: puzzle,
-                        changeLetter: _changeLetter,
-                      ),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton.icon(
-                        onPressed: () => _showHint(puzzle),
-                        icon: const Icon(Icons.lightbulb_outline),
-                        label: const Text('Hint'),
-                      ),
+                    TextButton.icon(
+                      onPressed: () => _showHint(puzzle),
+                      icon: const Icon(Icons.lightbulb_outline),
+                      label: const Text("Hint"),
                     ),
                   ],
                 ),
-              ),
 
-              // History ladder
-              if (_userPath.isNotEmpty)
+                // History ladder
                 Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _userPath.length,
-                    itemBuilder: (context, index) {
-                      final word = _userPath[index];
-                      Heat heat = Heat.same;
-                      if (index > 0) {
-                        heat = _computeHeat(puzzle, _userPath[index - 1], word);
-                      }
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        decoration: BoxDecoration(
-                          color: heatToColor(heat).withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.black12),
-                        ),
-                        child: Center(
-                          child: Text(
-                            word.toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                  child: ListView(
+                    children: tiles,
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
         );
       },
