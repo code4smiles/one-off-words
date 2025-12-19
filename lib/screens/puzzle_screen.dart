@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:oneoffwords/game_elements/puzzle.dart';
 
 import '../constants.dart';
+import '../ui/history_tile.dart';
 import '../ui/letter_picker.dart';
 import '../ui/tile_row.dart';
 
@@ -175,8 +176,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   Color _distanceColor(int distance) {
     if (_puzzleTargetWord == null) return Colors.grey;
     final maxDistance = _puzzleTargetWord!.length;
-    final normalized = distance / maxDistance; // 0 = correct, 1 = farthest
-    return Color.lerp(Colors.green, Colors.red, normalized)!;
+    final t = (distance / maxDistance).clamp(0.0, 1.0);
+    return Color.lerp(Colors.green, Colors.red, t)!;
   }
 
   int _computeEditDistance(String word1, String word2) {
@@ -191,9 +192,9 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   int _distanceToTarget(String word) {
-    if (_puzzleFuture == null) return 0; // safety
-    final target = _puzzleTargetWord; // store target once Future resolves
-    return _computeEditDistance(word, target!);
+    final target = _puzzleTargetWord;
+    if (target == null) return 0;
+    return _computeEditDistance(word, target);
   }
 
   void _setTileIndex(int index) {
@@ -239,6 +240,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 child: Text(
                   word.toUpperCase(),
                   style: const TextStyle(
+                    height: 1.0,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                   ),
@@ -248,8 +250,66 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           );
         }
 
+        final int currentMoves = _userPath.length - 1;
         return Scaffold(
-          appBar: AppBar(title: const Text(appName)),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 2,
+            centerTitle: true,
+            title: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Game title
+                Text(
+                  appName.toUpperCase(),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 12),
+
+                // Vertical divider
+                Container(
+                  width: 1,
+                  height: 24,
+                  color: Colors.black26,
+                ),
+                const SizedBox(width: 12),
+
+                // Animated move counter with fixed width
+                SizedBox(
+                  width: 80, // fixed width enough for "999 moves"
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    transitionBuilder: (child, animation) => ScaleTransition(
+                      scale: animation,
+                      child: FadeTransition(opacity: animation, child: child),
+                    ),
+                    child: Text(
+                      '${_userPath.length - 1} move${_userPath.length - 1 == 1 ? '' : 's'}',
+                      key: ValueKey<int>(_userPath.length - 1),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.orange,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(1),
+              child: Container(
+                height: 1,
+                color: Colors.black12,
+              ),
+            ),
+          ),
           body: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -292,9 +352,28 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 ),
 
                 // History ladder
+                // inside build -> Expanded(
                 Expanded(
-                  child: ListView(
-                    children: tiles,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    itemCount: _userPath.length,
+                    itemBuilder: (context, index) {
+                      final step = index + 1; // 1-based
+                      final word = _userPath[index];
+                      final isCurrent = index == _userPath.length - 1;
+                      final isSolved = word == _puzzleTargetWord;
+                      Heat heat = Heat.same;
+                      if (index > 0) {
+                        heat = _computeHeat(puzzle, _userPath[index - 1], word);
+                      }
+
+                      return HistoryTile(
+                        step: step,
+                        word: word,
+                        targetWord: puzzle.targetWord,
+                        heat: heat,
+                      );
+                    },
                   ),
                 ),
               ],
