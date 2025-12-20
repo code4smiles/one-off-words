@@ -26,6 +26,7 @@ class _HistorySectionState extends State<HistorySection> {
   void didUpdateWidget(covariant HistorySection oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    // Scroll to the newest guess when a new item is added
     if (widget.guesses.length > _lastCount) {
       _lastCount = widget.guesses.length;
 
@@ -72,6 +73,7 @@ class _HistorySectionState extends State<HistorySection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header with reset button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -89,7 +91,7 @@ class _HistorySectionState extends State<HistorySection> {
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text("Restart"),
                 style: TextButton.styleFrom(
-                  foregroundColor: Colors.black54,
+                  foregroundColor: Colors.black,
                   padding: EdgeInsets.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
@@ -97,34 +99,39 @@ class _HistorySectionState extends State<HistorySection> {
             ],
           ),
           const SizedBox(height: 8),
-          ListView.builder(
-            controller: _scrollController,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: widget.guesses.length,
-            itemBuilder: (context, index) {
-              final word = widget.guesses[index];
-              final isLatest = index == widget.guesses.length - 1;
-              final isRecent = index >= widget.guesses.length - 2;
 
-              final heat = index == 0
-                  ? Heat.same
-                  : _computeHeat(
-                      widget.guesses[index - 1],
-                      word,
-                    );
+          // Fixed-height scrollable history list
+          SizedBox(
+            height: 250, // adjust as needed
+            child: ScrollConfiguration(
+              behavior: const ScrollBehavior().copyWith(overscroll: false),
+              child: ListView.builder(
+                controller: _scrollController,
+                itemCount: widget.guesses.length,
+                itemBuilder: (context, index) {
+                  final word = widget.guesses[index];
+                  final isLatest = index == widget.guesses.length - 1;
+                  final isRecent = index >= widget.guesses.length - 2;
+                  final isCurrent = isLatest; // highlight current tile
 
-              return _AnimatedHistoryEntry(
-                isLatest: isLatest,
-                child: HistoryTile(
-                  word: word,
-                  step: index,
-                  targetWord: widget.puzzle.targetWord,
-                  heat: heat,
-                  isDimmed: !isRecent,
-                ),
-              );
-            },
+                  final heat = index == 0
+                      ? Heat.same
+                      : _computeHeat(widget.guesses[index - 1], word);
+
+                  return _AnimatedHistoryEntry(
+                    isLatest: isLatest,
+                    child: HistoryTile(
+                      word: word,
+                      step: index,
+                      targetWord: widget.puzzle.targetWord,
+                      heat: heat,
+                      isDimmed: !isRecent,
+                      isCurrent: isCurrent, // new flag for highlighting
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ],
       ),
