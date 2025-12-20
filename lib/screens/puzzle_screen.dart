@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:oneoffwords/game_elements/puzzle.dart';
 import 'package:oneoffwords/ui/history_section.dart';
@@ -22,19 +23,40 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   late Future<Puzzle> _puzzleFuture;
   final List<String> _userPath = [];
   final _random = Random();
-  // String? _puzzleTargetWord;
   int? _selectedTileIndex;
   int? _shakeTileIndex;
   String? _errorMessage;
   int? _hintTileIndex;
+  late final Ticker _ticker;
+  Duration _elapsed = Duration.zero;
+  DateTime? _startTime;
 
   @override
   void initState() {
     super.initState();
     _puzzleFuture = _loadPuzzle();
-    // _puzzleFuture.then((p) {
-    //   _puzzleTargetWord = p.targetWord;
-    // });
+    _startTimer();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  void _startTimer() {
+    _startTime = DateTime.now();
+    _ticker = Ticker((_) {
+      setState(() {
+        _elapsed = DateTime.now().difference(_startTime!);
+      });
+    })
+      ..start();
+  }
+
+  void _resetTimer() {
+    _startTime = DateTime.now();
+    _elapsed = Duration.zero;
   }
 
   Future<Puzzle> _loadPuzzle({bool randomize = false}) async {
@@ -68,6 +90,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   void _onWin() {
+    _ticker.stop();
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -225,6 +248,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _errorMessage = null;
       _hintTileIndex = null;
     });
+
+    _resetTimer();
   }
 
   void _confirmReset(Puzzle puzzle) {
@@ -258,7 +283,42 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   Future<void> _startNewPuzzle() async {
     setState(() {
       _puzzleFuture = _loadPuzzle(randomize: true);
+      _resetTimer();
     });
+  }
+
+  void _undoMove() {
+    if (_userPath.length <= 1) return;
+
+    setState(() {
+      _userPath.removeLast();
+      _selectedTileIndex = null;
+      _shakeTileIndex = null;
+      _errorMessage = null;
+      _hintTileIndex = null;
+    });
+  }
+
+  Widget _buildTimer() {
+    final minutes = _elapsed.inMinutes.toString().padLeft(2, '0');
+    final seconds = (_elapsed.inSeconds % 60).toString().padLeft(2, '0');
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.timer_outlined, size: 16, color: Colors.black54),
+        const SizedBox(width: 4),
+        Text(
+          '$minutes:$seconds',
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.black54,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -380,6 +440,28 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
+                // Label above the current word
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      child: const Text(
+                        'Current Word',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black54,
+                        ),
+                      ),
+                    ),
+                    _buildTimer(),
+                  ],
+                ),
+
+                const SizedBox(height: 4),
+
                 // Current editable word
                 SizedBox(
                   height: 150,
@@ -407,8 +489,20 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 const SizedBox(height: 16),
 
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    // Undo button (left)
+                    TextButton.icon(
+                      onPressed: _userPath.length > 1 ? _undoMove : null,
+                      icon: const Icon(Icons.undo, size: 16),
+                      label: const Text("Undo"),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black54,
+                        padding: EdgeInsets.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+
                     TextButton.icon(
                       onPressed: () => _showHint(puzzle),
                       icon: const Icon(Icons.lightbulb_outline),
@@ -423,6 +517,45 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                   puzzle: puzzle,
                   onReset: () => _confirmReset(puzzle),
                 ),
+
+                // Next puzzle button (only shown when puzzle is solved)
+                if (_userPath.isNotEmpty && _userPath.last == puzzle.targetWord)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Center(
+                      child: Material(
+                        color:
+                            Colors.teal, // Contrasting color to history tiles
+                        borderRadius: BorderRadius.circular(30),
+                        elevation: 4,
+                        child: InkWell(
+                          onTap: _startNewPuzzle,
+                          borderRadius: BorderRadius.circular(30),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(
+                                vertical: 14, horizontal: 24),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.arrow_forward,
+                                    color: Colors
+                                        .white), // Could use Icons.arrow_forward too
+                                SizedBox(width: 12),
+                                Text(
+                                  "Next Puzzle",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

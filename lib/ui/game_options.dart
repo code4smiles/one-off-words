@@ -46,9 +46,9 @@ class GameActionsButton extends StatelessWidget {
                     : null,
               ),
               ListTile(
-                leading: const Icon(Icons.auto_awesome),
+                leading: const Icon(Icons.casino),
                 title: const Text("New puzzle"),
-                subtitle: const Text("Start a completely new word"),
+                subtitle: const Text("Start with a new word"),
                 onTap: () {
                   Navigator.pop(context);
                   _confirmNewPuzzle(context);
