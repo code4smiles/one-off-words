@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:oneoffwords/game_elements/puzzle.dart';
+import 'package:oneoffwords/ui/game_app_bar.dart';
+import 'package:oneoffwords/ui/game_tools.dart';
 import 'package:oneoffwords/ui/history_section.dart';
+import 'package:oneoffwords/ui/next_puzzle_button.dart';
 
 import '../constants.dart';
 import '../ui/game_options.dart';
@@ -371,70 +374,11 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         final canReset = _userPath.length > 1;
 
         return Scaffold(
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            elevation: 2,
-            centerTitle: true,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Game title
-                Text(
-                  appName.toUpperCase(),
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                    color: Colors.black87,
-                  ),
-                ),
-                const SizedBox(width: 12),
-
-                // Vertical divider
-                Container(
-                  width: 1,
-                  height: 24,
-                  color: Colors.black26,
-                ),
-                const SizedBox(width: 12),
-
-                // Animated move counter with fixed width
-                SizedBox(
-                  width: 80, // fixed width enough for "999 moves"
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (child, animation) => ScaleTransition(
-                      scale: animation,
-                      child: FadeTransition(opacity: animation, child: child),
-                    ),
-                    child: Text(
-                      '${_userPath.length - 1} move${_userPath.length - 1 == 1 ? '' : 's'}',
-                      key: ValueKey<int>(_userPath.length - 1),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.orange,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              GameActionsButton(
-                canReset: canReset,
-                onReset: () => _resetPuzzle(puzzle),
-                onNewPuzzle: _startNewPuzzle,
-              ),
-            ],
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(1),
-              child: Container(
-                height: 1,
-                color: Colors.black12,
-              ),
-            ),
+          appBar: GameAppBar(
+            userPath: _userPath,
+            canReset: canReset,
+            onReset: () => _resetPuzzle(puzzle),
+            startNewPuzzle: _startNewPuzzle,
           ),
           body: Padding(
             padding: const EdgeInsets.all(16),
@@ -479,36 +423,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
                 const SizedBox(height: 12),
 
+                GameTools(
+                  userPath: _userPath,
+                  undoMove: _undoMove,
+                  showHint: () => _showHint(puzzle),
+                ),
+
+                const SizedBox(height: 16),
+
                 // Letter picker (only visible when tile selected)
                 LetterPicker(
                   puzzle: puzzle,
                   selectedTileIndex: _selectedTileIndex,
                   changeLetter: _changeLetter,
-                ),
-
-                const SizedBox(height: 16),
-
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Undo button (left)
-                    TextButton.icon(
-                      onPressed: _userPath.length > 1 ? _undoMove : null,
-                      icon: const Icon(Icons.undo, size: 16),
-                      label: const Text("Undo"),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.black54,
-                        padding: EdgeInsets.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                    ),
-
-                    TextButton.icon(
-                      onPressed: () => _showHint(puzzle),
-                      icon: const Icon(Icons.lightbulb_outline),
-                      label: const Text("Hint"),
-                    ),
-                  ],
                 ),
 
                 // History ladder
@@ -520,41 +447,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
                 // Next puzzle button (only shown when puzzle is solved)
                 if (_userPath.isNotEmpty && _userPath.last == puzzle.targetWord)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Center(
-                      child: Material(
-                        color:
-                            Colors.teal, // Contrasting color to history tiles
-                        borderRadius: BorderRadius.circular(30),
-                        elevation: 4,
-                        child: InkWell(
-                          onTap: _startNewPuzzle,
-                          borderRadius: BorderRadius.circular(30),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(
-                                vertical: 14, horizontal: 24),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.arrow_forward,
-                                    color: Colors
-                                        .white), // Could use Icons.arrow_forward too
-                                SizedBox(width: 12),
-                                Text(
-                                  "Next Puzzle",
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
+                  NextPuzzleButton(
+                    startNewPuzzle: _startNewPuzzle,
                   ),
               ],
             ),
