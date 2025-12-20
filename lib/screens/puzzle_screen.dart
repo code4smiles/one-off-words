@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,7 +7,7 @@ import 'package:oneoffwords/game_elements/puzzle.dart';
 import 'package:oneoffwords/ui/history_section.dart';
 
 import '../constants.dart';
-import '../ui/history_tile.dart';
+import '../ui/game_options.dart';
 import '../ui/letter_picker.dart';
 import '../ui/tile_row.dart';
 
@@ -20,7 +21,8 @@ class PuzzleScreen extends StatefulWidget {
 class _PuzzleScreenState extends State<PuzzleScreen> {
   late Future<Puzzle> _puzzleFuture;
   final List<String> _userPath = [];
-  String? _puzzleTargetWord;
+  final _random = Random();
+  // String? _puzzleTargetWord;
   int? _selectedTileIndex;
   int? _shakeTileIndex;
   String? _errorMessage;
@@ -30,18 +32,28 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   void initState() {
     super.initState();
     _puzzleFuture = _loadPuzzle();
-    _puzzleFuture.then((p) {
-      _puzzleTargetWord = p.targetWord;
-    });
+    // _puzzleFuture.then((p) {
+    //   _puzzleTargetWord = p.targetWord;
+    // });
   }
 
-  Future<Puzzle> _loadPuzzle() async {
+  Future<Puzzle> _loadPuzzle({bool randomize = false}) async {
     final puzzlesJson =
         await rootBundle.loadString('assets/puzzles_4_easy.json');
     final puzzlesList = jsonDecode(puzzlesJson) as List<dynamic>;
-    final puzzleJson = puzzlesList[0]; // pick first for demo
+
+    int index = randomize ? _random.nextInt(puzzlesList.length) : 0;
+    final puzzleJson = puzzlesList[index]; // pick first for demo
     final puzzle = Puzzle.fromJson(puzzleJson);
-    _userPath.add(puzzle.startWord);
+
+    _userPath
+      ..clear()
+      ..add(puzzle.startWord);
+    _selectedTileIndex = null;
+    _shakeTileIndex = null;
+    _errorMessage = null;
+    _hintTileIndex = null;
+
     return puzzle;
   }
 
@@ -174,9 +186,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     }
   }
 
-  Color _distanceColor(int distance) {
-    if (_puzzleTargetWord == null) return Colors.grey;
-    final maxDistance = _puzzleTargetWord!.length;
+  Color _distanceColor(Puzzle puzzle, int distance) {
+    final maxDistance = puzzle.targetWord.length;
     final t = (distance / maxDistance).clamp(0.0, 1.0);
     return Color.lerp(Colors.green, Colors.red, t)!;
   }
@@ -192,9 +203,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     return distance;
   }
 
-  int _distanceToTarget(String word) {
-    final target = _puzzleTargetWord;
-    if (target == null) return 0;
+  int _distanceToTarget(Puzzle puzzle, String word) {
+    final target = puzzle.targetWord;
     return _computeEditDistance(word, target);
   }
 
@@ -243,6 +253,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _startNewPuzzle() async {
+    setState(() {
+      _puzzleFuture = _loadPuzzle(randomize: true);
+    });
   }
 
   @override
@@ -346,12 +362,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
               ],
             ),
             actions: [
-              IconButton(
-                tooltip: canReset
-                    ? "Restart puzzle"
-                    : "You can restart the puzzle after making a move",
-                icon: const Icon(Icons.refresh),
-                onPressed: canReset ? () => _confirmReset(puzzle) : null,
+              GameActionsButton(
+                canReset: canReset,
+                onReset: () => _resetPuzzle(puzzle),
+                onNewPuzzle: _startNewPuzzle,
               ),
             ],
             bottom: PreferredSize(

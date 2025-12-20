@@ -13,8 +13,8 @@ class TileRow extends StatefulWidget {
   String? errorMessage;
   Puzzle puzzle;
   void Function(int) onTap;
-  int Function(String) distanceToTarget;
-  Color Function(int) distanceColor;
+  int Function(Puzzle, String) distanceToTarget;
+  Color Function(Puzzle, int) distanceColor;
 
   TileRow({
     super.key,
@@ -34,25 +34,9 @@ class TileRow extends StatefulWidget {
 }
 
 class TileRowState extends State<TileRow> {
-  int _prevDistance = 0;
-
-  @override
-  void didUpdateWidget(TileRow oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    final oldWord = oldWidget.userPath.last;
-    final newWord = widget.userPath.last;
-
-    if (oldWord != newWord) {
-      _prevDistance = widget.distanceToTarget(oldWord);
-    }
-  }
-
   @override
   build(BuildContext context) {
     final word = widget.userPath.last;
-    final currentDistance = widget.distanceToTarget(word);
-    final currentColor = widget.distanceColor(currentDistance);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -138,7 +122,7 @@ class TileRowState extends State<TileRow> {
 
         // ─── DISTANCE INDICATOR ────────────────────
         ProximityBar(
-          distance: widget.distanceToTarget(word),
+          distance: widget.distanceToTarget(widget.puzzle, word),
           maxDistance: word.length,
           isFirstMove: widget.userPath.length == 1,
         ),
