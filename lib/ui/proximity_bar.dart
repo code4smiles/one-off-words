@@ -35,7 +35,7 @@ class ProximityBar extends StatelessWidget {
     final isSolved = _progress >= 1.0;
     final labelWithLettersWrong = isSolved
         ? "All letters correct!"
-        : "${_baseLabel} (${distance} letter${distance == 1 ? '' : 's'} wrong)";
+        : "$_baseLabel ($distance letter${distance == 1 ? '' : 's'} wrong)";
 
     return Column(
       mainAxisSize: MainAxisSize.min,

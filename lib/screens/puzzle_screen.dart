@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oneoffwords/game_elements/puzzle.dart';
+import 'package:oneoffwords/ui/history_section.dart';
 
 import '../constants.dart';
 import '../ui/history_tile.dart';
@@ -203,6 +204,47 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
   }
 
+  void _resetPuzzle(Puzzle puzzle) {
+    setState(() {
+      _userPath
+        ..clear()
+        ..add(puzzle.startWord);
+
+      _selectedTileIndex = null;
+      _shakeTileIndex = null;
+      _errorMessage = null;
+      _hintTileIndex = null;
+    });
+  }
+
+  void _confirmReset(Puzzle puzzle) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Reset puzzle?"),
+        content: const Text(
+          "Your current progress will be lost.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resetPuzzle(puzzle);
+            },
+            child: const Text(
+              "Reset",
+              style: TextStyle(color: Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Puzzle>(
@@ -250,7 +292,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
           );
         }
 
-        final int currentMoves = _userPath.length - 1;
+        final canReset = _userPath.length > 1;
+
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.white,
@@ -302,6 +345,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 ),
               ],
             ),
+            actions: [
+              IconButton(
+                tooltip: canReset
+                    ? "Restart puzzle"
+                    : "You can restart the puzzle after making a move",
+                icon: const Icon(Icons.refresh),
+                onPressed: canReset ? () => _confirmReset(puzzle) : null,
+              ),
+            ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(1),
               child: Container(
@@ -352,29 +404,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                 ),
 
                 // History ladder
-                // inside build -> Expanded(
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    itemCount: _userPath.length,
-                    itemBuilder: (context, index) {
-                      final step = index + 1; // 1-based
-                      final word = _userPath[index];
-                      final isCurrent = index == _userPath.length - 1;
-                      final isSolved = word == _puzzleTargetWord;
-                      Heat heat = Heat.same;
-                      if (index > 0) {
-                        heat = _computeHeat(puzzle, _userPath[index - 1], word);
-                      }
-
-                      return HistoryTile(
-                        step: step,
-                        word: word,
-                        targetWord: puzzle.targetWord,
-                        heat: heat,
-                      );
-                    },
-                  ),
+                HistorySection(
+                  guesses: _userPath,
+                  puzzle: puzzle,
+                  onReset: () => _confirmReset(puzzle),
                 ),
               ],
             ),
