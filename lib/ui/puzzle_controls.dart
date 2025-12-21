@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class GameTools extends StatelessWidget {
+class PuzzleControls extends StatelessWidget {
   final List<String> userPath;
   final VoidCallback undoMove;
   final VoidCallback showHint;
 
-  const GameTools(
+  const PuzzleControls(
       {super.key,
       required this.userPath,
       required this.undoMove,

@@ -3,13 +3,11 @@ import 'package:oneoffwords/game_elements/puzzle.dart';
 import 'package:oneoffwords/ui/proximity_bar.dart';
 import 'package:oneoffwords/ui/shake_widget.dart';
 
+import '../game_elements/puzzle_session.dart';
 import 'glow_widget.dart';
 
 class TileRow extends StatefulWidget {
-  List<String> userPath;
-  int? selectedTileIndex;
-  int? hintTileIndex;
-  int? shakeTileIndex;
+  final PuzzleSession puzzleSession;
   String? errorMessage;
   Puzzle puzzle;
   void Function(int) onTap;
@@ -18,12 +16,8 @@ class TileRow extends StatefulWidget {
 
   TileRow({
     super.key,
-    required this.userPath,
-    required this.selectedTileIndex,
-    required this.hintTileIndex,
-    required this.shakeTileIndex,
-    required this.errorMessage,
     required this.puzzle,
+    required this.puzzleSession,
     required this.onTap,
     required this.distanceToTarget,
     required this.distanceColor,
@@ -36,7 +30,7 @@ class TileRow extends StatefulWidget {
 class TileRowState extends State<TileRow> {
   @override
   build(BuildContext context) {
-    final word = widget.userPath.last;
+    final word = widget.puzzleSession.userPath.last;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -45,7 +39,7 @@ class TileRowState extends State<TileRow> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(word.length, (i) {
-            final selected = widget.selectedTileIndex == i;
+            final selected = widget.puzzleSession.selectedTileIndex == i;
 
             return Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -63,9 +57,9 @@ class TileRowState extends State<TileRow> {
                       Positioned(
                         top: 0,
                         child: GlowWidget(
-                          glow: widget.hintTileIndex == i,
+                          glow: widget.puzzleSession.hintTileIndex == i,
                           child: ShakeWidget(
-                            shake: widget.shakeTileIndex == i,
+                            shake: widget.puzzleSession.shakeTileIndex == i,
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 150),
                               padding: const EdgeInsets.all(16),
@@ -94,7 +88,7 @@ class TileRowState extends State<TileRow> {
                           ),
                         ),
                       ),
-                      if (widget.shakeTileIndex == i &&
+                      if (widget.puzzleSession.shakeTileIndex == i &&
                           widget.errorMessage != null)
                         Positioned(
                           top: 72,
@@ -124,7 +118,7 @@ class TileRowState extends State<TileRow> {
         ProximityBar(
           distance: widget.distanceToTarget(widget.puzzle, word),
           maxDistance: word.length,
-          isFirstMove: widget.userPath.length == 1,
+          isFirstMove: widget.puzzleSession.userPath.length == 1,
         ),
       ],
     );
