@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:oneoffwords/screens/home_screen.dart';
 
 import 'package:oneoffwords/screens/puzzle_screen.dart';
 import 'constants.dart';
+import 'game_elements/game_mode.dart';
 
 void main() {
   runApp(const OneOffWordsApp());
@@ -16,7 +18,7 @@ class OneOffWordsApp extends StatelessWidget {
       title: appName,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.orange),
-      home: const PuzzleScreen(),
+      home: const HomeScreen(),
     );
   }
 }

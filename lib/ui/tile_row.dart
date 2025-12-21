@@ -35,7 +35,6 @@ class TileRowState extends State<TileRow> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ─── TILE ROW ─────────────────────────────
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(word.length, (i) {
@@ -111,10 +110,7 @@ class TileRowState extends State<TileRow> {
             );
           }),
         ),
-
         const SizedBox(height: 8),
-
-        // ─── DISTANCE INDICATOR ────────────────────
         ProximityBar(
           distance: widget.distanceToTarget(widget.puzzle, word),
           maxDistance: word.length,

@@ -6,6 +6,7 @@ import 'game_options.dart';
 class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
   final List<String> userPath;
   final bool canReset;
+  final bool ignoreInput;
   final VoidCallback onReset;
   final VoidCallback startNewPuzzle;
 
@@ -13,6 +14,7 @@ class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.userPath,
     required this.canReset,
+    required this.ignoreInput,
     required this.onReset,
     required this.startNewPuzzle,
   });
@@ -76,10 +78,13 @@ class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
-        GameActionsButton(
-          canReset: canReset,
-          onReset: onReset,
-          onNewPuzzle: startNewPuzzle,
+        IgnorePointer(
+          ignoring: ignoreInput,
+          child: GameActionsButton(
+            canReset: canReset,
+            onReset: onReset,
+            onNewPuzzle: startNewPuzzle,
+          ),
         ),
       ],
       bottom: PreferredSize(

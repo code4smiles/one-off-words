@@ -1,8 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../game_elements/game_mode.dart';
 
 class GameClock extends StatefulWidget {
-  const GameClock({super.key});
+  final GameMode mode;
+  final VoidCallback? onTimeExpired;
+
+  const GameClock({
+    super.key,
+    required this.mode,
+    this.onTimeExpired,
+  });
 
   @override
   GameClockState createState() => GameClockState();
@@ -10,15 +18,31 @@ class GameClock extends StatefulWidget {
 
 class GameClockState extends State<GameClock> with WidgetsBindingObserver {
   Timer? _timer;
+
   Duration _elapsed = Duration.zero;
+  Duration? _remaining;
+
   bool _isRunning = false;
 
+  // ─────────────────────────────────────────────
+  // Public getters
+  // ─────────────────────────────────────────────
+
   Duration get elapsed => _elapsed;
+  Duration? get remaining => _remaining;
+
+  // ─────────────────────────────────────────────
+  // Lifecycle
+  // ─────────────────────────────────────────────
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    if (widget.mode.isCountdown) {
+      _remaining = widget.mode.timeLimit;
+    }
   }
 
   @override
@@ -46,7 +70,7 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
   // ─────────────────────────────────────────────
 
   void start() {
-    if (_isRunning) return;
+    if (_isRunning || !widget.mode.usesClock) return;
     _isRunning = true;
     _startTimer();
   }
@@ -60,6 +84,7 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
     stop();
     setState(() {
       _elapsed = Duration.zero;
+      _remaining = widget.mode.isCountdown ? widget.mode.timeLimit : null;
     });
   }
 
@@ -71,9 +96,25 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       setState(() {
-        _elapsed += const Duration(seconds: 1);
+        if (widget.mode.isCountdown) {
+          _tickCountdown();
+        } else {
+          _elapsed += const Duration(seconds: 1);
+        }
       });
     });
+  }
+
+  void _tickCountdown() {
+    if (_remaining == null) return;
+
+    _remaining = _remaining! - const Duration(seconds: 1);
+
+    if (_remaining!.isNegative || _remaining == Duration.zero) {
+      _remaining = Duration.zero;
+      stop();
+      widget.onTimeExpired?.call();
+    }
   }
 
   void _pause() {
@@ -92,13 +133,26 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = _elapsed.inMinutes.toString().padLeft(2, '0');
-    final seconds = (_elapsed.inSeconds % 60).toString().padLeft(2, '0');
+    if (!widget.mode.usesClock) {
+      return const SizedBox.shrink();
+    }
+
+    final display =
+        widget.mode.isCountdown ? _remaining ?? Duration.zero : _elapsed;
+
+    final minutes = display.inMinutes.toString().padLeft(2, '0');
+    final seconds = (display.inSeconds % 60).toString().padLeft(2, '0');
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.timer_outlined, size: 16, color: Colors.black54),
+        Icon(
+          widget.mode.isCountdown
+              ? Icons.hourglass_bottom
+              : Icons.timer_outlined,
+          size: 16,
+          color: Colors.black54,
+        ),
         const SizedBox(width: 4),
         Text(
           '$minutes:$seconds',

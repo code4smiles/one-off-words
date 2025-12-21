@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oneoffwords/game_elements/game_mode.dart';
 import 'package:oneoffwords/game_elements/puzzle_session.dart';
 import 'package:oneoffwords/ui/tile_row.dart';
 
@@ -9,6 +10,7 @@ import 'game_clock.dart';
 class CurrentWordDisplay extends StatelessWidget {
   final GlobalKey<GameClockState> gameClockKey;
   final PuzzleSession puzzleSession;
+  final GameMode mode;
   final Puzzle puzzle;
   final void Function(int) onTap;
 
@@ -16,6 +18,7 @@ class CurrentWordDisplay extends StatelessWidget {
     super.key,
     required this.gameClockKey,
     required this.puzzleSession,
+    required this.mode,
     required this.puzzle,
     required this.onTap,
   });
@@ -52,6 +55,10 @@ class CurrentWordDisplay extends StatelessWidget {
             ),
             GameClock(
               key: gameClockKey,
+              mode: mode,
+              onTimeExpired: () {
+                // Future: auto-fail dialog
+              },
             ),
           ],
         ),

@@ -11,12 +11,15 @@ import 'package:oneoffwords/ui/puzzle_controls.dart';
 import 'package:oneoffwords/ui/history_section.dart';
 import 'package:oneoffwords/ui/next_puzzle_button.dart';
 
+import '../game_elements/game_mode.dart';
 import '../game_elements/puzzle_session.dart';
 import '../ui/game_clock.dart';
 import '../ui/letter_picker.dart';
+import '../ui/pre_start_countdown.dart';
 
 class PuzzleScreen extends StatefulWidget {
-  const PuzzleScreen({super.key});
+  final GameMode mode;
+  const PuzzleScreen({super.key, required this.mode});
 
   @override
   State<PuzzleScreen> createState() => _PuzzleScreenState();
@@ -24,14 +27,10 @@ class PuzzleScreen extends StatefulWidget {
 
 class _PuzzleScreenState extends State<PuzzleScreen> {
   late Future<Puzzle> _puzzleFuture;
-  // final List<String> _userPath = [];
   final _random = Random();
-  // int? _selectedTileIndex;
-  // int? _shakeTileIndex;
-  // String? _errorMessage;
-  // int? _hintTileIndex;
   final _puzzleSession = PuzzleSession();
   final _gameClockKey = GlobalKey<GameClockState>();
+  bool _showPreStart = false;
 
   @override
   void initState() {
@@ -53,6 +52,10 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     final puzzleJson = puzzlesList[index]; // pick first for demo
     final puzzle = Puzzle.fromJson(puzzleJson);
 
+    if (widget.mode.usesPreStartCountdown) {
+      _showPreStart = true;
+    }
+
     _puzzleSession.userPath
       ..clear()
       ..add(puzzle.startWord);
@@ -61,11 +64,19 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _puzzleSession.errorMessage = null;
     _puzzleSession.hintTileIndex = null;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _gameClockKey.currentState?.start();
-    });
-
     return puzzle;
+  }
+
+  void _startGameClockIfNeeded() {
+    if (!widget.mode.usesClock) return;
+    _gameClockKey.currentState?.start();
+  }
+
+  void _onCountdownComplete() {
+    setState(() {
+      _showPreStart = false;
+    });
+    _startGameClockIfNeeded();
   }
 
   void _onWin() {
@@ -109,6 +120,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   }
 
   void _changeLetter(Puzzle puzzle, int index, String newLetter) {
+    if (_showPreStart) return;
+
     final prev = _puzzleSession.userPath.last;
     final chars = prev.split('');
 
@@ -233,52 +246,65 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
             canReset: canReset,
             onReset: () => _resetPuzzle(puzzle),
             startNewPuzzle: _startNewPuzzle,
+            ignoreInput: _showPreStart,
           ),
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                /// Current editable word
-                CurrentWordDisplay(
-                  gameClockKey: _gameClockKey,
-                  puzzleSession: _puzzleSession,
-                  onTap: _setTileIndex,
-                  puzzle: puzzle,
-                ),
+          body: Stack(
+            children: [
+              IgnorePointer(
+                ignoring: _showPreStart,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      /// Current editable word
+                      CurrentWordDisplay(
+                        gameClockKey: _gameClockKey,
+                        puzzleSession: _puzzleSession,
+                        onTap: _setTileIndex,
+                        puzzle: puzzle,
+                        mode: widget.mode,
+                      ),
 
-                const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-                ///Undo and hint controls
-                PuzzleControls(
-                  userPath: _puzzleSession.userPath,
-                  undoMove: _undoMove,
-                  showHint: () => _showHint(puzzle),
-                ),
+                      ///Undo and hint controls
+                      PuzzleControls(
+                        userPath: _puzzleSession.userPath,
+                        undoMove: _undoMove,
+                        showHint: () => _showHint(puzzle),
+                      ),
 
-                const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                /// Letter picker
-                LetterPicker(
-                  puzzle: puzzle,
-                  selectedTileIndex: _puzzleSession.selectedTileIndex,
-                  changeLetter: _changeLetter,
-                ),
+                      /// Letter picker
+                      LetterPicker(
+                        puzzle: puzzle,
+                        selectedTileIndex: _puzzleSession.selectedTileIndex,
+                        changeLetter: _changeLetter,
+                      ),
 
-                /// History ladder
-                HistorySection(
-                  guesses: _puzzleSession.userPath,
-                  puzzle: puzzle,
-                  onReset: () => _confirmReset(puzzle),
-                ),
+                      /// History ladder
+                      HistorySection(
+                        guesses: _puzzleSession.userPath,
+                        puzzle: puzzle,
+                        onReset: () => _confirmReset(puzzle),
+                      ),
 
-                /// Next puzzle button (only shown when puzzle is solved)
-                if (_puzzleSession.userPath.isNotEmpty &&
-                    _puzzleSession.userPath.last == puzzle.targetWord)
-                  NextPuzzleButton(
-                    startNewPuzzle: _startNewPuzzle,
+                      /// Next puzzle button (only shown when puzzle is solved)
+                      if (_puzzleSession.userPath.isNotEmpty &&
+                          _puzzleSession.userPath.last == puzzle.targetWord)
+                        NextPuzzleButton(
+                          startNewPuzzle: _startNewPuzzle,
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+              ),
+              if (_showPreStart)
+                PreStartCountdown(
+                  onComplete: _onCountdownComplete,
+                ),
+            ],
           ),
         );
       },
