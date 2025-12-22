@@ -154,7 +154,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     setState(() {
       _puzzleSession.userPath.add(guess);
-      _puzzleSession.selectedTileIndex = null;
       _puzzleSession.shakeTileIndex = null;
       _puzzleSession.errorMessage = null;
     });
@@ -164,7 +163,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   void _setTileIndex(int index) {
     setState(() {
-      _puzzleSession.selectedTileIndex = index;
+      if (_puzzleSession.selectedTileIndex == index) {
+        // Toggle off
+        _puzzleSession.selectedTileIndex = null;
+      } else {
+        _puzzleSession.selectedTileIndex = index;
+      }
     });
   }
 
@@ -178,6 +182,8 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _puzzleSession.shakeTileIndex = null;
       _puzzleSession.errorMessage = null;
       _puzzleSession.hintTileIndex = null;
+      _gameClockKey.currentState?.reset();
+      _gameClockKey.currentState?.start();
     });
   }
 
@@ -221,7 +227,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     setState(() {
       _puzzleSession.userPath.removeLast();
-      _puzzleSession.selectedTileIndex = null;
       _puzzleSession.shakeTileIndex = null;
       _puzzleSession.errorMessage = null;
       _puzzleSession.hintTileIndex = null;

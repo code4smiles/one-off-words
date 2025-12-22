@@ -29,7 +29,7 @@ class GameActionsButton extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -40,7 +40,7 @@ class GameActionsButton extends StatelessWidget {
                 enabled: canReset,
                 onTap: canReset
                     ? () {
-                        Navigator.pop(context);
+                        Navigator.pop(sheetContext);
                         _confirmReset(context);
                       }
                     : null,
@@ -75,7 +75,7 @@ class GameActionsButton extends StatelessWidget {
           ElevatedButton(
             child: const Text("Restart"),
             onPressed: () {
-              Navigator.pop(context);
+              Navigator.of(context, rootNavigator: true).pop();
               onReset();
             },
           ),
