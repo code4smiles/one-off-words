@@ -130,11 +130,15 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     chars[index] = newLetter;
     final guess = chars.join();
 
-    // Invalid dictionary word
-    if (!puzzle.distanceMap.containsKey(guess)) {
+    bool alreadyUsed = _puzzleSession.userPath.contains(guess);
+    bool invalidWord = !puzzle.distanceMap.containsKey(guess);
+
+    // Invalid dictionary word or previously-used word
+    if (invalidWord || alreadyUsed) {
       setState(() {
         _puzzleSession.shakeTileIndex = index;
-        _puzzleSession.errorMessage = "Not a valid word";
+        _puzzleSession.errorMessage =
+            alreadyUsed ? "Word already used" : "That won't work";
       });
 
       Future.delayed(const Duration(milliseconds: 600), () {
@@ -147,8 +151,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       });
       return;
     }
-
-    if (_puzzleSession.userPath.contains(guess)) return;
 
     setState(() {
       _puzzleSession.userPath.add(guess);
@@ -279,7 +281,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       /// Letter picker
                       LetterPicker(
                         puzzle: puzzle,
-                        selectedTileIndex: _puzzleSession.selectedTileIndex,
+                        puzzleSession: _puzzleSession,
                         changeLetter: _changeLetter,
                       ),
 

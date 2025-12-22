@@ -29,16 +29,6 @@ class CurrentWordDisplay extends StatelessWidget {
       children: [
         const SizedBox(height: 4),
 
-        // Current editable word
-        SizedBox(
-          height: 150,
-          child: TileRow(
-              puzzle: puzzle,
-              puzzleSession: puzzleSession,
-              onTap: onTap,
-              distanceToTarget: GameLogic.distanceToTarget,
-              distanceColor: GameLogic.distanceColor),
-        ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -61,6 +51,16 @@ class CurrentWordDisplay extends StatelessWidget {
               },
             ),
           ],
+        ),
+        // Current editable word
+        SizedBox(
+          height: 150,
+          child: TileRow(
+              puzzle: puzzle,
+              puzzleSession: puzzleSession,
+              onTap: onTap,
+              distanceToTarget: GameLogic.distanceToTarget,
+              distanceColor: GameLogic.distanceColor),
         ),
       ],
     );

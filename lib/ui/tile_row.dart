@@ -8,13 +8,12 @@ import 'glow_widget.dart';
 
 class TileRow extends StatefulWidget {
   final PuzzleSession puzzleSession;
-  String? errorMessage;
-  Puzzle puzzle;
-  void Function(int) onTap;
-  int Function(Puzzle, String) distanceToTarget;
-  Color Function(Puzzle, int) distanceColor;
+  final Puzzle puzzle;
+  final void Function(int) onTap;
+  final int Function(Puzzle, String) distanceToTarget;
+  final Color Function(Puzzle, int) distanceColor;
 
-  TileRow({
+  const TileRow({
     super.key,
     required this.puzzle,
     required this.puzzleSession,
@@ -88,13 +87,13 @@ class TileRowState extends State<TileRow> {
                         ),
                       ),
                       if (widget.puzzleSession.shakeTileIndex == i &&
-                          widget.errorMessage != null)
+                          widget.puzzleSession.errorMessage != null)
                         Positioned(
                           top: 72,
                           left: 0,
                           right: 0,
                           child: Text(
-                            widget.errorMessage!,
+                            widget.puzzleSession.errorMessage!,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               color: Colors.red,
