@@ -24,21 +24,24 @@ class GameUI extends StatelessWidget {
   final Function(int) setTileIndex;
   final Function(Puzzle) onTimeExpired;
   final VoidCallback onCountdownComplete;
+  final bool showNextPuzzleButton;
 
-  const GameUI(
-      {super.key,
-      required this.puzzleSession,
-      required this.puzzle,
-      required this.mode,
-      required this.gameClockKey,
-      required this.showPreStart,
-      required this.startNewPuzzle,
-      required this.changeLetter,
-      required this.undoMove,
-      required this.showHint,
-      required this.onTimeExpired,
-      required this.onCountdownComplete,
-      required this.setTileIndex});
+  const GameUI({
+    super.key,
+    required this.puzzleSession,
+    required this.puzzle,
+    required this.mode,
+    required this.gameClockKey,
+    required this.showPreStart,
+    required this.startNewPuzzle,
+    required this.changeLetter,
+    required this.undoMove,
+    required this.showHint,
+    required this.onTimeExpired,
+    required this.onCountdownComplete,
+    required this.setTileIndex,
+    required this.showNextPuzzleButton,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -97,7 +100,8 @@ class GameUI extends StatelessWidget {
 
                         /// Next puzzle button (only shown when puzzle is solved)
                         if (puzzleSession.userPath.isNotEmpty &&
-                            puzzleSession.userPath.last == puzzle.targetWord)
+                            puzzleSession.userPath.last == puzzle.targetWord &&
+                            showNextPuzzleButton)
                           NextPuzzleButton(
                             startNewPuzzle: startNewPuzzle,
                           ),

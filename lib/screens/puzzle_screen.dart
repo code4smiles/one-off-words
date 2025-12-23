@@ -11,6 +11,7 @@ import '../game_elements/game_mode.dart';
 import '../game_elements/puzzle_session.dart';
 import '../ui/game_clock.dart';
 import '../ui/game_ui.dart';
+import '../ui/win_dialog.dart';
 
 class PuzzleScreen extends StatefulWidget {
   final GameMode mode;
@@ -25,6 +26,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
   final _random = Random();
   final _puzzleSession = PuzzleSession();
   final _gameClockKey = GlobalKey<GameClockState>();
+  bool _showNextPuzzleButton = false;
   bool _showPreStart = false;
 
   @override
@@ -94,21 +96,29 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     );
   }
 
-  void _onWin() {
+  void _onWin() async {
     _gameClockKey.currentState?.stop();
-    showDialog(
+
+    setState(() {
+      _showNextPuzzleButton = false;
+    });
+
+    final result = await showDialog<WinDialogResult>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("You got it! 🎉"),
-        content: Text("Solved in ${_puzzleSession.userPath.length - 1} moves."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
+      barrierDismissible: true, // important: tap outside = review
+      builder: (_) => WinDialog(
+        puzzleSession: _puzzleSession,
       ),
     );
+
+    // If user did NOT start a new puzzle, show the bottom button
+    if (result != WinDialogResult.newPuzzle) {
+      setState(() {
+        _showNextPuzzleButton = true;
+      });
+    } else {
+      _startNewPuzzle();
+    }
   }
 
   void _showHint(Puzzle puzzle) {
@@ -128,10 +138,12 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
   }
 
-  void _checkForWin(String guess, Puzzle puzzle) {
+  bool _checkForWin(String guess, Puzzle puzzle) {
     if (guess == puzzle.targetWord) {
       _onWin();
+      return true;
     }
+    return false;
   }
 
   void _onDeadEnd(Puzzle puzzle) {
@@ -205,7 +217,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       _puzzleSession.errorMessage = null;
     });
 
-    _checkForWin(guess, puzzle);
+    if (_checkForWin(guess, puzzle)) return;
 
     //Check for dead end.
     if (!GameLogic.hasAnyValidNextMove(
@@ -323,6 +335,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
               onTimeExpired: _onTimeExpired,
               onCountdownComplete: _onCountdownComplete,
               setTileIndex: _setTileIndex,
+              showNextPuzzleButton: _showNextPuzzleButton,
             ));
       },
     );
