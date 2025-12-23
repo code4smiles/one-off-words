@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
                       icon: Icons.timer_outlined,
                       iconColor: Colors.orangeAccent,
                       title: 'Time Trial',
-                      description: 'Solve as fast as possible.',
+                      description: 'Solve before time runs out.',
                       onTap: () => _startGame(
                         context,
                         GameMode.timeTrial,

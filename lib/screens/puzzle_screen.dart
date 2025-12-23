@@ -7,8 +7,8 @@ import 'package:oneoffwords/game_elements/puzzle.dart';
 import 'package:oneoffwords/game_logic/game_logic.dart';
 import 'package:oneoffwords/ui/current_word_display.dart';
 import 'package:oneoffwords/ui/game_app_bar.dart';
+import 'package:oneoffwords/ui/game_status.dart';
 import 'package:oneoffwords/ui/puzzle_controls.dart';
-import 'package:oneoffwords/ui/history_section.dart';
 import 'package:oneoffwords/ui/next_puzzle_button.dart';
 
 import '../game_elements/game_mode.dart';
@@ -79,6 +79,26 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _startGameClockIfNeeded();
   }
 
+  void _onTimeExpired(Puzzle puzzle) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("Time's up ⏰"),
+        content: const Text("Give it another try?"),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _resetPuzzle(puzzle);
+            },
+            child: const Text("Retry"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onWin() {
     _gameClockKey.currentState?.stop();
     showDialog(
@@ -117,6 +137,38 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     if (guess == puzzle.targetWord) {
       _onWin();
     }
+  }
+
+  void _onDeadEnd(Puzzle puzzle) {
+    _gameClockKey.currentState?.stop();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Text("No more moves 😕"),
+        content: const Text(
+          "You've reached a dead end. There are no valid moves left from here.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _undoMove();
+              _gameClockKey.currentState?.start();
+            },
+            child: const Text("Undo"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _confirmReset(puzzle);
+            },
+            child: const Text("Restart"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _changeLetter(Puzzle puzzle, int index, String newLetter) {
@@ -159,6 +211,14 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     });
 
     _checkForWin(guess, puzzle);
+
+    //Check for dead end.
+    if (!GameLogic.hasAnyValidNextMove(
+      puzzle,
+      _puzzleSession.userPath,
+    )) {
+      _onDeadEnd(puzzle);
+    }
   }
 
   void _setTileIndex(int index) {
@@ -265,7 +325,6 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                     children: [
                       /// Current editable word
                       CurrentWordDisplay(
-                        gameClockKey: _gameClockKey,
                         puzzleSession: _puzzleSession,
                         onTap: _setTileIndex,
                         puzzle: puzzle,
@@ -273,6 +332,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
                       ),
 
                       const SizedBox(height: 12),
+
+                      /// Letter picker
+                      LetterPicker(
+                        puzzle: puzzle,
+                        puzzleSession: _puzzleSession,
+                        changeLetter: _changeLetter,
+                      ),
 
                       ///Undo and hint controls
                       PuzzleControls(
@@ -283,18 +349,13 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
                       const SizedBox(height: 16),
 
-                      /// Letter picker
-                      LetterPicker(
+                      /// Game status (clock + moves)
+                      GameStatus(
+                        gameClockKey: _gameClockKey,
+                        mode: widget.mode,
                         puzzle: puzzle,
                         puzzleSession: _puzzleSession,
-                        changeLetter: _changeLetter,
-                      ),
-
-                      /// History ladder
-                      HistorySection(
-                        guesses: _puzzleSession.userPath,
-                        puzzle: puzzle,
-                        onReset: () => _confirmReset(puzzle),
+                        onTimeExpired: () => _onTimeExpired(puzzle),
                       ),
 
                       /// Next puzzle button (only shown when puzzle is solved)

@@ -1,49 +1,35 @@
 import 'package:flutter/material.dart';
 import '../game_elements/puzzle.dart';
-import 'history_tile.dart';
 
-class HistorySection extends StatefulWidget {
+class HistorySection extends StatelessWidget {
   final Puzzle puzzle;
   final List<String> guesses;
-  final VoidCallback onReset;
 
   const HistorySection({
     super.key,
     required this.puzzle,
     required this.guesses,
-    required this.onReset,
   });
 
-  @override
-  State<HistorySection> createState() => _HistorySectionState();
-}
-
-class _HistorySectionState extends State<HistorySection> {
-  final ScrollController _scrollController = ScrollController();
-  int _lastCount = 0;
-
-  @override
-  void didUpdateWidget(covariant HistorySection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    // Scroll to the newest guess when a new item is added
-    if (widget.guesses.length > _lastCount) {
-      _lastCount = widget.guesses.length;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-          );
-        }
-      });
+  Icon _heatIcon(Heat heat) {
+    switch (heat) {
+      case Heat.muchWarmer:
+        return const Icon(Icons.local_fire_department,
+            color: Colors.red, size: 18);
+      case Heat.warmer:
+        return const Icon(Icons.arrow_upward, color: Colors.orange, size: 18);
+      case Heat.same:
+        return const Icon(Icons.horizontal_rule, color: Colors.grey, size: 18);
+      case Heat.colder:
+        return const Icon(Icons.arrow_downward,
+            color: Colors.lightBlue, size: 18);
+      case Heat.muchColder:
+        return const Icon(Icons.ac_unit, color: Colors.blue, size: 18);
     }
   }
 
   Heat _computeHeat(String prev, String curr) {
-    final heatStr = widget.puzzle.heatMap[prev]?[curr] ?? 'same';
+    final heatStr = puzzle.heatMap[prev]?[curr] ?? 'same';
     switch (heatStr) {
       case 'muchWarmer':
         return Heat.muchWarmer;
@@ -60,111 +46,206 @@ class _HistorySectionState extends State<HistorySection> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.guesses.isEmpty) return const SizedBox.shrink();
+    final recentGuesses = guesses.isEmpty
+        ? <String>[]
+        : guesses.length <= 3
+            ? guesses
+            : guesses.sublist(guesses.length - 3);
 
     return Container(
+      width: double.infinity, // full width
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       margin: const EdgeInsets.only(top: 12),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.black12),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center, // center inner content
         children: [
-          // Header with reset button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Header
+          const Text(
+            "Your Moves",
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Column titles
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
-                "Your Moves",
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.5,
-                  color: Colors.black,
+              SizedBox(
+                width: 100, // Word column
+                child: Text(
+                  "Word",
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  textAlign: TextAlign.center,
                 ),
               ),
-              TextButton.icon(
-                onPressed: widget.guesses.length <= 1 ? null : widget.onReset,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text("Restart"),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.black,
-                  padding: EdgeInsets.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              SizedBox(
+                width: 70, // Distance column (wider)
+                child: Text(
+                  "Wrong",
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              SizedBox(
+                width: 50, // Trend column (wider)
+                child: Text(
+                  "Trend",
+                  style: TextStyle(fontSize: 12, color: Colors.black54),
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
 
-          // Fixed-height scrollable history list
-          SizedBox(
-            height: 250, // adjust as needed
-            child: ScrollConfiguration(
-              behavior: const ScrollBehavior().copyWith(overscroll: false),
-              child: ListView.builder(
-                controller: _scrollController,
-                itemCount: widget.guesses.length,
-                itemBuilder: (context, index) {
-                  final word = widget.guesses[index];
-                  final isLatest = index == widget.guesses.length - 1;
-                  final isRecent = index >= widget.guesses.length - 2;
-                  final isCurrent = isLatest; // highlight current tile
-
-                  final heat = index == 0
-                      ? Heat.same
-                      : _computeHeat(widget.guesses[index - 1], word);
-
-                  return _AnimatedHistoryEntry(
-                    isLatest: isLatest,
-                    child: HistoryTile(
-                      word: word,
-                      step: index,
-                      targetWord: widget.puzzle.targetWord,
-                      heat: heat,
-                      isDimmed: !isRecent,
-                      isCurrent: isCurrent, // new flag for highlighting
-                    ),
-                  );
-                },
+          // Recent guesses
+          if (recentGuesses.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                "No moves made yet",
+                style: TextStyle(color: Colors.black38),
               ),
+            )
+          else
+            ...List.generate(recentGuesses.length, (i) {
+              final index = guesses.length - recentGuesses.length + i;
+              final word = guesses[index];
+              final heat = index == 0
+                  ? Heat.same
+                  : _computeHeat(guesses[index - 1], word);
+              final distance = puzzle.distanceMap[word] ?? 0;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 100,
+                      child: Text(word.toUpperCase(),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
+                          textAlign: TextAlign.center),
+                    ),
+                    SizedBox(
+                      width: 70,
+                      child: Text(
+                        distance.toString(),
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    SizedBox(width: 50, child: _heatIcon(heat)),
+                  ],
+                ),
+              );
+            }),
+
+          // Optional button to see full history
+          if (guesses.length > 3)
+            TextButton(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (context) =>
+                      _FullHistoryDialog(puzzle: puzzle, guesses: guesses),
+                );
+              },
+              child: const Text("Show full history"),
             ),
-          ),
         ],
       ),
     );
   }
 }
 
-class _AnimatedHistoryEntry extends StatelessWidget {
-  final bool isLatest;
-  final Widget child;
+class _FullHistoryDialog extends StatelessWidget {
+  final Puzzle puzzle;
+  final List<String> guesses;
 
-  const _AnimatedHistoryEntry({
-    required this.isLatest,
-    required this.child,
-  });
+  const _FullHistoryDialog({required this.puzzle, required this.guesses});
+
+  Heat _computeHeat(String prev, String curr) {
+    final heatStr = puzzle.heatMap[prev]?[curr] ?? 'same';
+    switch (heatStr) {
+      case 'muchWarmer':
+        return Heat.muchWarmer;
+      case 'warmer':
+        return Heat.warmer;
+      case 'colder':
+        return Heat.colder;
+      case 'muchColder':
+        return Heat.muchColder;
+      default:
+        return Heat.same;
+    }
+  }
+
+  Icon _heatIcon(Heat heat) {
+    switch (heat) {
+      case Heat.muchWarmer:
+        return const Icon(Icons.local_fire_department, color: Colors.red);
+      case Heat.warmer:
+        return const Icon(Icons.arrow_upward, color: Colors.orange);
+      case Heat.same:
+        return const Icon(Icons.horizontal_rule, color: Colors.grey);
+      case Heat.colder:
+        return const Icon(Icons.arrow_downward, color: Colors.lightBlue);
+      case Heat.muchColder:
+        return const Icon(Icons.ac_unit, color: Colors.blue);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (!isLatest) return child;
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Full History",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            ...List.generate(guesses.length, (i) {
+              final word = guesses[i];
+              final distance = puzzle.distanceMap[word] ?? 0;
+              final heat =
+                  i == 0 ? Heat.same : _computeHeat(guesses[i - 1], word);
 
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0, end: 1),
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-      builder: (context, value, _) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, (1 - value) * 8),
-            child: child,
-          ),
-        );
-      },
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                        width: 100,
+                        child: Text(word.toUpperCase(),
+                            style: const TextStyle(fontFamily: 'monospace'))),
+                    SizedBox(width: 50, child: Text(distance.toString())),
+                    SizedBox(width: 40, child: _heatIcon(heat)),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
     );
   }
 }

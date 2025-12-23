@@ -5,10 +5,8 @@ import 'package:oneoffwords/ui/tile_row.dart';
 
 import '../game_elements/puzzle.dart';
 import '../game_logic/game_logic.dart';
-import 'game_clock.dart';
 
 class CurrentWordDisplay extends StatelessWidget {
-  final GlobalKey<GameClockState> gameClockKey;
   final PuzzleSession puzzleSession;
   final GameMode mode;
   final Puzzle puzzle;
@@ -16,7 +14,6 @@ class CurrentWordDisplay extends StatelessWidget {
 
   const CurrentWordDisplay({
     super.key,
-    required this.gameClockKey,
     required this.puzzleSession,
     required this.mode,
     required this.puzzle,
@@ -25,44 +22,53 @@ class CurrentWordDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 4),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.black12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const SizedBox(height: 4),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              child: const Text(
-                'Current Word',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black54,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: const Text(
+                  'Current Word',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black54,
+                  ),
                 ),
               ),
-            ),
-            GameClock(
-              key: gameClockKey,
-              mode: mode,
-              onTimeExpired: () {
-                // Future: auto-fail dialog
-              },
-            ),
-          ],
-        ),
-        // Current editable word
-        SizedBox(
-          height: 150,
-          child: TileRow(
-              puzzle: puzzle,
-              puzzleSession: puzzleSession,
-              onTap: onTap,
-              distanceToTarget: GameLogic.distanceToTarget,
-              distanceColor: GameLogic.distanceColor),
-        ),
-      ],
+            ],
+          ),
+          // Current editable word
+          SizedBox(
+            height: 150,
+            child: TileRow(
+                puzzle: puzzle,
+                puzzleSession: puzzleSession,
+                onTap: onTap,
+                distanceToTarget: GameLogic.distanceToTarget,
+                distanceColor: GameLogic.distanceColor),
+          ),
+        ],
+      ),
     );
   }
 }

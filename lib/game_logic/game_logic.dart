@@ -54,4 +54,33 @@ class GameLogic {
     final target = puzzle.targetWord;
     return computeEditDistance(word, target);
   }
+
+  static bool hasAnyValidNextMove(
+    Puzzle puzzle,
+    List<String> userPath,
+  ) {
+    final current = userPath.last;
+    final chars = current.split('');
+
+    for (int i = 0; i < chars.length; i++) {
+      final original = chars[i];
+
+      for (int c = 0; c < 26; c++) {
+        final letter = String.fromCharCode(97 + c);
+        if (letter == original) continue;
+
+        chars[i] = letter;
+        final guess = chars.join();
+
+        if (puzzle.distanceMap.containsKey(guess) &&
+            !userPath.contains(guess)) {
+          return true;
+        }
+      }
+
+      chars[i] = original;
+    }
+
+    return false;
+  }
 }

@@ -35,6 +35,7 @@ class GameMode {
   static const timeTrial = GameMode._(
     type: GameModeType.timeTrial,
     trackBestTime: true,
+    timeLimit: Duration(minutes: 2),
     // no timeLimit → count UP
   );
 

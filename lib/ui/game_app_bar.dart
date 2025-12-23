@@ -42,39 +42,6 @@ class GameAppBar extends StatelessWidget implements PreferredSizeWidget {
             ),
           ),
           const SizedBox(width: 12),
-
-          // Vertical divider
-          Container(
-            width: 1,
-            height: 24,
-            color: Colors.black26,
-          ),
-          const SizedBox(width: 12),
-
-          // Animated move counter with fixed width
-          SizedBox(
-            width: 80, // fixed width enough for "999 moves"
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, animation) => ScaleTransition(
-                scale: animation,
-                child: FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-              ),
-              child: Text(
-                '${userPath.length - 1} move${userPath.length - 1 == 1 ? '' : 's'}',
-                key: ValueKey<int>(userPath.length - 1),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.orange,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
         ],
       ),
       actions: [
