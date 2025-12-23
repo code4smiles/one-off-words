@@ -18,33 +18,55 @@ class GameClock extends StatefulWidget {
   GameClockState createState() => GameClockState();
 }
 
-class GameClockState extends State<GameClock> with WidgetsBindingObserver {
+class GameClockState extends State<GameClock>
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   Timer? _timer;
 
   Duration _elapsed = Duration.zero;
   late Duration _remaining;
+  late final AnimationController _pulseController;
+  late final Animation<double> _scaleAnimation;
 
   bool _isRunning = false;
   bool _expired = false;
+
+  bool get _shouldPulse =>
+      widget.mode.isCountdown &&
+      _remaining.inSeconds > 0 &&
+      _remaining.inSeconds <= 10;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
-    _remaining = widget.initialDuration;
+    if (widget.mode.isCountdown) {
+      _remaining = widget.mode.timeLimit!;
+    }
+
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.15,
+    ).animate(
+      CurvedAnimation(
+        parent: _pulseController,
+        curve: Curves.easeInOut,
+      ),
+    );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
+    _pulseController.dispose();
     super.dispose();
   }
-
-  // ─────────────────────────────────────────────
-  // Public API
-  // ─────────────────────────────────────────────
 
   void start() {
     if (_isRunning || !widget.mode.usesClock) return;
@@ -68,10 +90,6 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
     });
   }
 
-  // ─────────────────────────────────────────────
-  // Timer logic
-  // ─────────────────────────────────────────────
-
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -86,14 +104,22 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
   }
 
   void _tickCountdown() {
-    if (_expired) return;
+    if (_remaining == null) return;
 
-    if (_remaining > const Duration(seconds: 1)) {
-      _remaining -= const Duration(seconds: 1);
-    } else {
+    _remaining = _remaining - const Duration(seconds: 1);
+
+    if (_shouldPulse && !_pulseController.isAnimating) {
+      _pulseController.repeat(reverse: true);
+    } else if (!_shouldPulse && _pulseController.isAnimating) {
+      _pulseController.stop();
+      _pulseController.reset();
+    }
+
+    if (_remaining.isNegative || _remaining == Duration.zero) {
       _remaining = Duration.zero;
-      _expired = true;
       stop();
+      _pulseController.stop();
+      _pulseController.reset();
       widget.onTimeExpired?.call();
     }
   }
@@ -118,29 +144,36 @@ class GameClockState extends State<GameClock> with WidgetsBindingObserver {
     final minutes = display.inMinutes.toString().padLeft(2, '0');
     final seconds = (display.inSeconds % 60).toString().padLeft(2, '0');
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          widget.mode.isCountdown
-              ? Icons.hourglass_bottom
-              : Icons.timer_outlined,
-          size: 16,
-          color: widget.mode.isCountdown &&
-                  _remaining <= const Duration(seconds: 10)
-              ? Colors.redAccent
-              : Colors.black54,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          '$minutes:$seconds',
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
+    final isUrgent = _shouldPulse;
+
+    final color = isUrgent ? Colors.redAccent : Colors.black54;
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            widget.mode.isCountdown
+                ? Icons.hourglass_bottom
+                : Icons.timer_outlined,
+            size: 16,
+            color: widget.mode.isCountdown &&
+                    _remaining <= const Duration(seconds: 10)
+                ? Colors.redAccent
+                : Colors.black54,
           ),
-        ),
-      ],
+          const SizedBox(width: 4),
+          Text(
+            '$minutes:$seconds',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

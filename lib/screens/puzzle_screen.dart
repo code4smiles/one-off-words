@@ -5,17 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oneoffwords/game_elements/puzzle.dart';
 import 'package:oneoffwords/game_logic/game_logic.dart';
-import 'package:oneoffwords/ui/current_word_display.dart';
 import 'package:oneoffwords/ui/game_app_bar.dart';
-import 'package:oneoffwords/ui/game_status.dart';
-import 'package:oneoffwords/ui/puzzle_controls.dart';
-import 'package:oneoffwords/ui/next_puzzle_button.dart';
 
 import '../game_elements/game_mode.dart';
 import '../game_elements/puzzle_session.dart';
 import '../ui/game_clock.dart';
-import '../ui/letter_picker.dart';
-import '../ui/pre_start_countdown.dart';
+import '../ui/game_ui.dart';
 
 class PuzzleScreen extends StatefulWidget {
   final GameMode mode;
@@ -308,73 +303,27 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
         final canReset = _puzzleSession.userPath.length > 1;
 
         return Scaffold(
-          appBar: GameAppBar(
-            userPath: _puzzleSession.userPath,
-            canReset: canReset,
-            onReset: () => _resetPuzzle(puzzle),
-            startNewPuzzle: _startNewPuzzle,
-            ignoreInput: _showPreStart,
-          ),
-          body: Stack(
-            children: [
-              IgnorePointer(
-                ignoring: _showPreStart,
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      /// Current editable word
-                      CurrentWordDisplay(
-                        puzzleSession: _puzzleSession,
-                        onTap: _setTileIndex,
-                        puzzle: puzzle,
-                        mode: widget.mode,
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      /// Letter picker
-                      LetterPicker(
-                        puzzle: puzzle,
-                        puzzleSession: _puzzleSession,
-                        changeLetter: _changeLetter,
-                      ),
-
-                      ///Undo and hint controls
-                      PuzzleControls(
-                        userPath: _puzzleSession.userPath,
-                        undoMove: _undoMove,
-                        showHint: () => _showHint(puzzle),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      /// Game status (clock + moves)
-                      GameStatus(
-                        gameClockKey: _gameClockKey,
-                        mode: widget.mode,
-                        puzzle: puzzle,
-                        puzzleSession: _puzzleSession,
-                        onTimeExpired: () => _onTimeExpired(puzzle),
-                      ),
-
-                      /// Next puzzle button (only shown when puzzle is solved)
-                      if (_puzzleSession.userPath.isNotEmpty &&
-                          _puzzleSession.userPath.last == puzzle.targetWord)
-                        NextPuzzleButton(
-                          startNewPuzzle: _startNewPuzzle,
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_showPreStart)
-                PreStartCountdown(
-                  onComplete: _onCountdownComplete,
-                ),
-            ],
-          ),
-        );
+            appBar: GameAppBar(
+              userPath: _puzzleSession.userPath,
+              canReset: canReset,
+              onReset: () => _resetPuzzle(puzzle),
+              startNewPuzzle: _startNewPuzzle,
+              ignoreInput: _showPreStart,
+            ),
+            body: GameUI(
+              puzzleSession: _puzzleSession,
+              puzzle: puzzle,
+              mode: widget.mode,
+              gameClockKey: _gameClockKey,
+              showPreStart: _showPreStart,
+              startNewPuzzle: _startNewPuzzle,
+              changeLetter: _changeLetter,
+              undoMove: _undoMove,
+              showHint: _showHint,
+              onTimeExpired: _onTimeExpired,
+              onCountdownComplete: _onCountdownComplete,
+              setTileIndex: _setTileIndex,
+            ));
       },
     );
   }

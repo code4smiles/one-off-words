@@ -35,8 +35,7 @@ class GameMode {
   static const timeTrial = GameMode._(
     type: GameModeType.timeTrial,
     trackBestTime: true,
-    timeLimit: Duration(minutes: 2),
-    // no timeLimit → count UP
+    timeLimit: Duration(seconds: 15),
   );
 
   static const optimalMoves = GameMode._(
@@ -53,10 +52,6 @@ class GameMode {
         timeLimit: timeLimit,
         trackBestTime: true,
       );
-
-  // ----------------------------
-  // Clock helpers (used by GameClock)
-  // ----------------------------
 
   /// Should a clock be shown at all?
   bool get usesClock =>
