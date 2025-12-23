@@ -108,6 +108,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
       barrierDismissible: true, // important: tap outside = review
       builder: (_) => WinDialog(
         puzzleSession: _puzzleSession,
+        gameClockKey: _gameClockKey,
       ),
     );
 
@@ -336,6 +337,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
               onCountdownComplete: _onCountdownComplete,
               setTileIndex: _setTileIndex,
               showNextPuzzleButton: _showNextPuzzleButton,
+              confirmReset: _confirmReset,
             ));
       },
     );

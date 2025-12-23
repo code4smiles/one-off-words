@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oneoffwords/game_elements/puzzle_session.dart';
+import 'package:oneoffwords/ui/game_navigation.dart';
 import 'package:oneoffwords/ui/pre_start_countdown.dart';
-import 'package:oneoffwords/ui/puzzle_controls.dart';
 
 import '../game_elements/game_mode.dart';
 import '../game_elements/puzzle.dart';
@@ -9,7 +9,6 @@ import 'current_word_display.dart';
 import 'game_clock.dart';
 import 'game_status.dart';
 import 'letter_picker.dart';
-import 'next_puzzle_button.dart';
 
 class GameUI extends StatelessWidget {
   final PuzzleSession puzzleSession;
@@ -24,6 +23,7 @@ class GameUI extends StatelessWidget {
   final Function(int) setTileIndex;
   final Function(Puzzle) onTimeExpired;
   final VoidCallback onCountdownComplete;
+  final Function(Puzzle) confirmReset;
   final bool showNextPuzzleButton;
 
   const GameUI({
@@ -40,6 +40,7 @@ class GameUI extends StatelessWidget {
     required this.onTimeExpired,
     required this.onCountdownComplete,
     required this.setTileIndex,
+    required this.confirmReset,
     required this.showNextPuzzleButton,
   });
 
@@ -80,13 +81,6 @@ class GameUI extends StatelessWidget {
                           changeLetter: changeLetter,
                         ),
 
-                        ///Undo and hint controls
-                        PuzzleControls(
-                          userPath: puzzleSession.userPath,
-                          undoMove: undoMove,
-                          showHint: () => showHint(puzzle),
-                        ),
-
                         const SizedBox(height: 16),
 
                         /// Game status (clock + moves)
@@ -96,15 +90,17 @@ class GameUI extends StatelessWidget {
                           puzzle: puzzle,
                           puzzleSession: puzzleSession,
                           onTimeExpired: () => onTimeExpired(puzzle),
+                          undoMove: undoMove,
+                          showHint: showHint,
+                          restartPuzzle: confirmReset,
                         ),
-
-                        /// Next puzzle button (only shown when puzzle is solved)
-                        if (puzzleSession.userPath.isNotEmpty &&
-                            puzzleSession.userPath.last == puzzle.targetWord &&
-                            showNextPuzzleButton)
-                          NextPuzzleButton(
-                            startNewPuzzle: startNewPuzzle,
-                          ),
+                        const Spacer(),
+                        GameNavigation(
+                          startNewPuzzle: startNewPuzzle,
+                          goToHomeScreenConfirmed: () {
+                            Navigator.pop(context); // go back to HomeScreen
+                          },
+                        ),
                       ],
                     )),
                   ),

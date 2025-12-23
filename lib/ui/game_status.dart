@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oneoffwords/game_elements/puzzle_session.dart';
 import 'package:oneoffwords/ui/move_counter.dart';
+import 'package:oneoffwords/ui/puzzle_action_bar.dart';
 
 import '../game_elements/game_mode.dart';
 import '../game_elements/puzzle.dart';
@@ -13,6 +14,9 @@ class GameStatus extends StatelessWidget {
   final Puzzle puzzle;
   final PuzzleSession puzzleSession;
   final VoidCallback? onTimeExpired;
+  final VoidCallback undoMove;
+  final Function(Puzzle) showHint;
+  final Function(Puzzle) restartPuzzle;
 
   const GameStatus({
     super.key,
@@ -21,6 +25,9 @@ class GameStatus extends StatelessWidget {
     required this.puzzle,
     required this.puzzleSession,
     required this.onTimeExpired,
+    required this.undoMove,
+    required this.showHint,
+    required this.restartPuzzle,
   });
 
   @override
@@ -49,6 +56,14 @@ class GameStatus extends StatelessWidget {
               /// Move counter
               MoveCounter(
                 puzzleSession: puzzleSession,
+                gameMode: mode,
+              ),
+              PuzzleActionBar(
+                userPath: puzzleSession.userPath,
+                puzzle: puzzle,
+                undoMove: undoMove,
+                showHint: () => showHint,
+                restartPuzzle: restartPuzzle,
               ),
             ],
           ),

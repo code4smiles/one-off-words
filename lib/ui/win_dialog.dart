@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oneoffwords/game_elements/puzzle_session.dart';
+import 'package:oneoffwords/ui/game_clock.dart';
 import 'package:oneoffwords/ui/win_action_button.dart';
 
 enum WinDialogResult {
@@ -9,10 +10,12 @@ enum WinDialogResult {
 
 class WinDialog extends StatelessWidget {
   final PuzzleSession puzzleSession;
+  final GlobalKey<GameClockState> gameClockKey;
 
   const WinDialog({
     super.key,
     required this.puzzleSession,
+    required this.gameClockKey,
   });
 
   @override
@@ -30,23 +33,35 @@ class WinDialog extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 4),
-          Text(
-            "${puzzleSession.userPath.length - 1}",
-            style: TextStyle(
-              fontSize: 36,
-              fontWeight: FontWeight.bold,
-              color: Colors.teal.shade700,
+          if (gameClockKey.currentState != null &&
+              gameClockKey.currentState!.isCountdown) ...[
+            Text(
+              "${gameClockKey!.currentState!.totalElapsed.inSeconds} seconds",
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                letterSpacing: 0.5,
+              ),
+            )
+          ] else ...[
+            Text(
+              "${puzzleSession.userPath.length - 1}",
+              style: TextStyle(
+                fontSize: 36,
+                fontWeight: FontWeight.bold,
+                color: Colors.teal.shade700,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "moves",
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
-              letterSpacing: 0.5,
-            ),
-          ),
+            const SizedBox(height: 4),
+            const Text(
+              "moves",
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                letterSpacing: 0.5,
+              ),
+            )
+          ],
           const SizedBox(height: 16),
           const Text(
             "What would you like to do next?",
@@ -67,6 +82,7 @@ class WinDialog extends StatelessWidget {
                 Navigator.pop(context, WinDialogResult.review);
               },
             ),
+            const SizedBox(width: 20),
             WinActionButton(
               icon: Icons.casino,
               label: "New Puzzle",

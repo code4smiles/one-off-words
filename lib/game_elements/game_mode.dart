@@ -35,7 +35,7 @@ class GameMode {
   static const timeTrial = GameMode._(
     type: GameModeType.timeTrial,
     trackBestTime: true,
-    timeLimit: Duration(seconds: 15),
+    timeLimit: Duration(minutes: 2),
   );
 
   static const optimalMoves = GameMode._(

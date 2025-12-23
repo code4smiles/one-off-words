@@ -24,16 +24,24 @@ class GameClockState extends State<GameClock>
 
   Duration _elapsed = Duration.zero;
   late Duration _remaining;
+
+  /// store the elapsed time at the moment the game stops
+  Duration _finalElapsed = Duration.zero;
+
   late final AnimationController _pulseController;
   late final Animation<double> _scaleAnimation;
 
   bool _isRunning = false;
-  bool _expired = false;
 
   bool get _shouldPulse =>
       widget.mode.isCountdown &&
       _remaining.inSeconds > 0 &&
       _remaining.inSeconds <= 10;
+
+  /// Getter to get total time spent
+  Duration get totalElapsed => _isRunning ? _elapsed : _finalElapsed;
+
+  bool get isCountdown => widget.mode.isCountdown;
 
   @override
   void initState() {
@@ -72,13 +80,21 @@ class GameClockState extends State<GameClock>
     if (_isRunning || !widget.mode.usesClock) return;
 
     _isRunning = true;
-    _expired = false;
     _startTimer();
   }
 
   void stop() {
     _isRunning = false;
     _timer?.cancel();
+    _pulseController.stop();
+    _pulseController.reset();
+
+    // store the final elapsed time so we can report it later
+    if (widget.mode.isCountdown) {
+      _finalElapsed = widget.mode.timeLimit! - _remaining;
+    } else {
+      _finalElapsed = _elapsed;
+    }
   }
 
   void reset() {
@@ -86,7 +102,6 @@ class GameClockState extends State<GameClock>
     setState(() {
       _elapsed = Duration.zero;
       _remaining = widget.initialDuration;
-      _expired = false;
     });
   }
 
@@ -143,10 +158,6 @@ class GameClockState extends State<GameClock>
 
     final minutes = display.inMinutes.toString().padLeft(2, '0');
     final seconds = (display.inSeconds % 60).toString().padLeft(2, '0');
-
-    final isUrgent = _shouldPulse;
-
-    final color = isUrgent ? Colors.redAccent : Colors.black54;
 
     return ScaleTransition(
       scale: _scaleAnimation,
