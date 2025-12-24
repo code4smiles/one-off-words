@@ -4,6 +4,7 @@ class PuzzleSession {
   int? shakeTileIndex;
   int? hintTileIndex;
   String? errorMessage;
+  bool isCompleted = false;
 
   void reset(String startWord) {
     userPath
@@ -13,5 +14,6 @@ class PuzzleSession {
     shakeTileIndex = null;
     hintTileIndex = null;
     errorMessage = null;
+    isCompleted = false;
   }
 }

@@ -60,6 +60,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
     _puzzleSession.shakeTileIndex = null;
     _puzzleSession.errorMessage = null;
     _puzzleSession.hintTileIndex = null;
+    _puzzleSession.isCompleted = false;
 
     return puzzle;
   }
@@ -101,6 +102,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
     setState(() {
       _showNextPuzzleButton = false;
+      _puzzleSession.isCompleted = true;
     });
 
     final result = await showDialog<WinDialogResult>(
@@ -181,6 +183,7 @@ class _PuzzleScreenState extends State<PuzzleScreen> {
 
   void _changeLetter(Puzzle puzzle, int index, String newLetter) {
     if (_showPreStart) return;
+    if (_puzzleSession.isCompleted) return;
 
     final prev = _puzzleSession.userPath.last;
     final chars = prev.split('');

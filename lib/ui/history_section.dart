@@ -88,17 +88,17 @@ class HistorySection extends StatelessWidget {
                 ),
               ),
               SizedBox(
-                width: 70, // Distance column (wider)
+                width: 80, // Distance column (wider)
                 child: Text(
-                  "Wrong",
+                  "Moves away",
                   style: TextStyle(fontSize: 12, color: Colors.black54),
                   textAlign: TextAlign.center,
                 ),
               ),
               SizedBox(
-                width: 50, // Trend column (wider)
+                width: 70, // Trend column (wider)
                 child: Text(
-                  "Trend",
+                  "Progress",
                   style: TextStyle(fontSize: 12, color: Colors.black54),
                   textAlign: TextAlign.center,
                 ),
@@ -140,14 +140,14 @@ class HistorySection extends StatelessWidget {
                           textAlign: TextAlign.center),
                     ),
                     SizedBox(
-                      width: 70,
+                      width: 80,
                       child: Text(
                         distance.toString(),
                         style: const TextStyle(fontWeight: FontWeight.w500),
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    SizedBox(width: 50, child: _heatIcon(heat)),
+                    SizedBox(width: 70, child: _heatIcon(heat)),
                   ],
                 ),
               );

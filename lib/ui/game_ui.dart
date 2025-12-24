@@ -65,11 +65,14 @@ class GameUI extends StatelessWidget {
                         child: Column(
                       children: [
                         /// Current editable word
-                        CurrentWordDisplay(
-                          puzzleSession: puzzleSession,
-                          onTap: setTileIndex,
-                          puzzle: puzzle,
-                          mode: mode,
+                        Opacity(
+                          opacity: puzzleSession.isCompleted ? 0.6 : 1.0,
+                          child: CurrentWordDisplay(
+                            puzzleSession: puzzleSession,
+                            onTap: setTileIndex,
+                            puzzle: puzzle,
+                            mode: mode,
+                          ),
                         ),
 
                         const SizedBox(height: 12),
